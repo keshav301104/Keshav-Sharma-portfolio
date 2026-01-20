@@ -4,19 +4,24 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-// === UPDATE THIS SECTION ===
+// === UPDATE THIS BLOCK ===
 export const metadata: Metadata = {
+  // 1. Set the Base URL so WhatsApp finds the image
+  metadataBase: new URL('https://keshav-sharma-portfolio-kappa.vercel.app'),
+
   title: 'Keshav Sharma | AI, Data & Software Engineer',
   description: 'NASA Space Apps Winner building production-ready AI agents, scalable SemRAG pipelines, and robust backend systems.',
-  
-  // This ensures the title looks good on social media
+
   openGraph: {
     title: 'Keshav Sharma | AI, Data & Software Engineer',
     description: 'NASA Space Apps Winner. Explore my portfolio of production-grade AI and Engineering projects.',
+    url: 'https://keshav-sharma-portfolio-kappa.vercel.app',
+    siteName: 'Keshav Sharma Portfolio',
+    locale: 'en_US',
     type: 'website',
   },
 }
-// ===========================
+// =========================
 
 export default function RootLayout({
   children,
