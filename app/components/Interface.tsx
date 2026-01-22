@@ -31,9 +31,9 @@ export default function Interface() {
                 <div className="w-full h-full rounded-full overflow-hidden bg-zinc-900 relative z-10 flex items-center justify-center">
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
                     <img 
-                        src="/me.jpeg" 
+                        src="/me_3.jpeg" 
                         alt="Keshav Sharma" 
-                        className="object-cover w-full h-full relative z-20"
+                        className="object-cover object-top w-full h-full relative z-20"
                     />
                 </div>
             </motion.div>
