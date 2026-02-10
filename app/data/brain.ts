@@ -71,34 +71,41 @@ export const brain = {
       },
       {
         id: "AI-02",
-        label: "Quantum Drug Discovery",
-        link: "https://github.com/keshav301104/Quantum-Drug-Discovery-Assistant",
-        tech: ["Gemini API", "Quantum Neural Networks", "Qiskit"],
-        description: "Google Solution Challenge '25: A hybrid platform combining Quantum VQE simulation and Generative AI to predict molecular properties and design novel drug candidates."
+        label: "AML Agentic AI",
+        description: "Autonomous Multi-Agent System modeled with LangGraph to detect money laundering patterns. Agents collaborate to analyze transaction networks and flag anomalies.",
+        tech: ["LangGraph", "Streamlit", "Python"],
+        link: "https://github.com/keshav301104/AML-Agentic-AI" 
       },
       {
         id: "AI-03",
-        label: "Lead Scout AI",
-        link: "https://github.com/keshav301104/Lead_Scout_AI",
-        tech: ["Multi-Agent", "Gemini 1.5", "PubMed API"],
-        description: "Autonomous B2B agent that cross-references technographic data with scientific publications to identify high-value biotech leads."
-      },
-      {
-        id: "AI-04",
         label: "Neural Audit",
         link: "https://github.com/keshav301104/Neural_Audit",
         tech: ["AI Eval", "Hallucination Detection", "LLM Judge"],
         description: "Real-time compliance engine evaluating RAG responses against ground truth. Scores factual accuracy, relevance, and latency."
       },
       {
+        id: "AI-04",
+        label: "Quantum Drug Discovery",
+        link: "https://github.com/keshav301104/Quantum-Drug-Discovery-Assistant",
+        tech: ["Gemini API", "Quantum Neural Networks", "Qiskit"],
+        description: "Google Solution Challenge '25: A hybrid platform combining Quantum VQE simulation and Generative AI to predict molecular properties and design novel drug candidates."
+      },
+      {
         id: "AI-05",
+        label: "Lead Scout AI",
+        link: "https://github.com/keshav301104/Lead_Scout_AI",
+        tech: ["Multi-Agent", "Gemini 1.5", "PubMed API"],
+        description: "Autonomous B2B agent that cross-references technographic data with scientific publications to identify high-value biotech leads."
+      },
+      {
+        id: "AI-06",
         label: "SwarSmriti",
         link: "https://github.com/keshav301104/swarsmriti",
         tech: ["Voice Cloning", "ElevenLabs", "React"],
         description: "AI voice memory assistant preserving legacies via voice synthesis and vector embeddings. Features a React frontend and emotional recall."
       },
       {
-        id: "AI-06",
+        id: "AI-07",
         label: "AI Voice Receptionist",
         link: "https://github.com/keshav301104/AI-Voice-Receptionist",
         tech: ["Retell AI", "n8n", "MongoDB"],
