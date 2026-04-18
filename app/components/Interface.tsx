@@ -3,6 +3,8 @@ import { motion, useMotionTemplate, useMotionValue, useSpring, useTransform } fr
 import { Github, Linkedin, Mail, ExternalLink, Download, Award, Server, Cpu, Brain, Briefcase, FileText, CheckCircle, Code, Layers, Database, Sparkles, FileCode, Terminal, Calendar, Building2, Rocket, Globe, Zap, Activity } from 'lucide-react'
 import { brain } from '../data/brain'
 import { useState, useRef, useEffect } from 'react'
+import NeuralTimeline from './NeuralTimeline'
+import AcademicNode from './AcademicNode'
 
 export default function Interface() {
   const { profile, education, skills, projects, leadership, certs, experience } = brain
@@ -83,9 +85,9 @@ export default function Interface() {
                 </div>
 
                 {/* The Content */}
-                <p className="text-lg md:text-xl text-gray-300 leading-relaxed font-light">
-                    I’m a <strong className="text-yellow-400 font-semibold">NASA Space Apps Challenge winner</strong> focused on building AI systems that hold up <span className="text-white border-b border-white/20">beyond prototypes</span>. My work spans <span className="text-purple-400 font-medium">LLM-driven agents</span>, <span className="text-emerald-400 font-medium">data-intensive machine learning</span>, and <span className="text-blue-400 font-medium">backend system design</span>, with an emphasis on reliability, scale, and real-world decision support. I specialize in translating complex, ambiguous problems into <strong className="text-white font-medium">production-ready architectures</strong>—prioritizing correctness, evaluation, and long-term usability over hype. <span className="inline-block w-2 h-5 ml-1 bg-blue-500 animate-pulse align-middle" />
-                </p>
+                <p className="text-gray-400 leading-relaxed text-base md:text-lg">
+  I engineer intelligence, not just wrappers. As a <strong className="text-white font-semibold">NASA Space Apps Global Winner</strong>, my focus is bridging the gap between experimental research and resilient, <strong className="text-white font-semibold">production-grade infrastructure</strong>. My work spans <span className="text-[#bb9af7]">autonomous multi-agent systems</span>, <span className="text-[#9ece6a]">semantic RAG pipelines</span>, and <span className="text-[#7aa2f7]">scalable backend design</span>. I specialize in translating ambiguous, real-world problems into deterministic architectures—prioritizing evaluation, reliability, and execution over industry hype.
+</p>
             </div>
         </motion.div>
 
@@ -123,78 +125,11 @@ export default function Interface() {
       </motion.section>
 
 
-      {/* 2. TIMELINE */}
-      <section className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-7 space-y-6">
-             <motion.h3 variants={item} className="text-2xl font-bold flex items-center gap-2 mb-6"><Briefcase className="text-purple-400"/> Experience</motion.h3>
-             {experience.map((job, i) => (
-                <SpotlightCard key={i} color="purple">
-                    <div className="flex justify-between items-start mb-2 relative z-10">
-                        <h4 className="text-xl font-bold text-white">{job.role}</h4>
-                        <span className="text-xs font-mono bg-purple-500/20 text-purple-200 px-2 py-1 rounded">{job.date}</span>
-                    </div>
-                    <p className="text-lg text-purple-300 mb-4 relative z-10">{job.company}</p>
-                    <p className="text-gray-300 leading-relaxed relative z-10">{job.desc}</p>
-                </SpotlightCard>
-            ))}
-            
-            {leadership.map((item, i) => (
-                 <SpotlightCard key={i} color="yellow">
-                    <h4 className="text-lg font-bold text-white relative z-10">{item.role}</h4>
-                    <p className="text-yellow-500/80 text-sm mb-2 uppercase tracking-wide relative z-10">{item.org}</p>
-                    <p className="text-gray-400 text-sm relative z-10">{item.desc}</p>
-                </SpotlightCard>
-            ))}
-        </div>
+      {/* 2. OPERATIONAL TIMELINE (God-Level Experience) */}
+      <NeuralTimeline />
 
-        <div className="md:col-span-5 flex flex-col h-full">
-            <motion.h3 variants={item} className="text-2xl font-bold flex items-center gap-2 mb-6"><Award className="text-blue-400"/> Education</motion.h3>
-            <motion.div 
-                variants={item}
-                whileHover={{ scale: 1.02 }}
-                className="glass-panel p-8 rounded-3xl border-t border-white/10 flex-grow flex flex-col relative overflow-hidden"
-            >
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-
-                <div className="relative z-10 flex flex-col h-full">
-                    <div className="mb-6">
-                        <h4 className="text-2xl font-bold text-white">{education.degree}</h4>
-                        <p className="text-blue-400 text-lg">{education.school}</p>
-                    </div>
-
-                    <div className="mb-8 group">
-                        <div className="flex justify-between text-xs text-gray-500 mb-2 font-mono">
-                            <span>2023</span>
-                            <span className="group-hover:text-green-400 transition-colors">75% COMPLETE</span>
-                            <span>2027</span>
-                        </div>
-                        <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} whileInView={{ width: "75%" }} transition={{ duration: 1.5 }} className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500" />
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                         <div className="bg-black/40 p-4 rounded-xl border border-white/10">
-                            <p className="text-xs text-gray-500 uppercase">CGPA</p>
-                            <p className="text-green-400 font-mono text-xl">{education.grade.replace("CGPA: ", "")}</p>
-                         </div>
-                         <div className="bg-black/40 p-4 rounded-xl border border-white/10">
-                            <p className="text-xs text-gray-500 uppercase">Specialization</p>
-                            <p className="text-white font-medium">Data Analytics</p>
-                         </div>
-                    </div>
-
-                    <div className="mt-auto pt-6 border-t border-white/10">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-400">{education.schooling.name}</span>
-                            <span className="text-gray-500 font-mono">{education.schooling.grade}</span>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-        </div>
-      </section>
-
+      {/* 2.5. ACADEMIC AUTHORIZATION (God-Level Education Module) */}
+      <AcademicNode />
 
       {/* 3. TECHNICAL ARSENAL */}
       <section>

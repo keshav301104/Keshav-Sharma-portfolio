@@ -64,48 +64,76 @@ export const brain = {
     ai: [
       {
         id: "AI-01",
-        label: "AmbedkarGPT 2.0",
-        link: "https://github.com/keshav301104/AmbedkarGPT-2.0",
-        tech: ["SemRAG", "Knowledge Graph", "FastAPI"],
-        description: "Advanced RAG system utilizing a SemRAG architecture to analyze constitutional texts. Features semantic chunking, graph-based local/global search, and a cross-encoder citation engine."
+        label: "VikaraAI Interview Agent",
+        link: "https://github.com/keshav301104/VikaraAI-Interview-Scheculing-Agent",
+        tech: ["Voice AI", "LangChain", "Calendar API"],
+        description: "Autonomous interview scheduling agent capable of handling multi-turn conversational flows, extracting candidate availability, and executing seamless API calendar syncs."
       },
       {
         id: "AI-02",
+        label: "WebForge AI (Troopod)",
+        link: "https://github.com/keshav301104/WebFordge-AI",
+        tech: ["LangGraph", "FastAPI", "Next.js 16"],
+        description: "Autonomous Agentic CRO engine. Orchestrates multimodal LangGraph agents and a proprietary Deep DOM Tracking algorithm to rewrite and theme live landing pages without breaking CSS grids."
+      },
+      {
+        id: "AI-03",
         label: "AML Agentic AI",
         description: "Autonomous Multi-Agent System modeled with LangGraph to detect money laundering patterns. Agents collaborate to analyze transaction networks and flag anomalies.",
         tech: ["LangGraph", "Streamlit", "Python"],
         link: "https://github.com/keshav301104/AML-Agentic-AI" 
       },
       {
-        id: "AI-03",
+        id: "AI-04",
+        label: "AmbedkarGPT 2.0",
+        link: "https://github.com/keshav301104/AmbedkarGPT-2.0",
+        tech: ["SemRAG", "Knowledge Graph", "FastAPI"],
+        description: "Advanced RAG system utilizing a SemRAG architecture to analyze constitutional texts. Features semantic chunking, graph-based local/global search, and a cross-encoder citation engine."
+      },
+      {
+        id: "AI-05",
         label: "Neural Audit",
         link: "https://github.com/keshav301104/Neural_Audit",
         tech: ["AI Eval", "Hallucination Detection", "LLM Judge"],
         description: "Real-time compliance engine evaluating RAG responses against ground truth. Scores factual accuracy, relevance, and latency."
       },
       {
-        id: "AI-04",
+        id: "AI-06",
+        label: "Infix Agentic Platform",
+        link: "https://github.com/keshav301104/Infix-Agentic-Platform",
+        tech: ["Multi-Agent System", "FastAPI", "React"],
+        description: "Enterprise-grade agentic workflow platform. Orchestrates multiple specialized LLM agents to execute complex, multi-step organizational tasks with human-in-the-loop capabilities."
+      },
+      {
+        id: "AI-07",
+        label: "GovPreneurs Agentic AI",
+        link: "https://github.com/keshav301104/GovPreneurs_Agentic_AI",
+        tech: ["GovTech", "LLMs", "RAG"],
+        description: "Specialized AI agent designed for government and public sector policy analysis. Utilizes advanced RAG to navigate complex regulatory frameworks and provide actionable insights."
+      },
+      {
+        id: "AI-08",
         label: "Quantum Drug Discovery",
         link: "https://github.com/keshav301104/Quantum-Drug-Discovery-Assistant",
         tech: ["Gemini API", "Quantum Neural Networks", "Qiskit"],
         description: "Google Solution Challenge '25: A hybrid platform combining Quantum VQE simulation and Generative AI to predict molecular properties and design novel drug candidates."
       },
       {
-        id: "AI-05",
+        id: "AI-09",
         label: "Lead Scout AI",
         link: "https://github.com/keshav301104/Lead_Scout_AI",
         tech: ["Multi-Agent", "Gemini 1.5", "PubMed API"],
         description: "Autonomous B2B agent that cross-references technographic data with scientific publications to identify high-value biotech leads."
       },
       {
-        id: "AI-06",
+        id: "AI-10",
         label: "SwarSmriti",
         link: "https://github.com/keshav301104/swarsmriti",
         tech: ["Voice Cloning", "ElevenLabs", "React"],
         description: "AI voice memory assistant preserving legacies via voice synthesis and vector embeddings. Features a React frontend and emotional recall."
       },
       {
-        id: "AI-07",
+        id: "AI-11",
         label: "AI Voice Receptionist",
         link: "https://github.com/keshav301104/AI-Voice-Receptionist",
         tech: ["Retell AI", "n8n", "MongoDB"],
