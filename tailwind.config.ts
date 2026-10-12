@@ -8,6 +8,14 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // The three fonts loaded in app/layout.tsx, available as
+      // font-display, font-sans and font-mono. The names after the
+      // variable are fallbacks while the real font is loading.
+      fontFamily: {
+        display: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
       // 1. Define the Animation Utilities
       animation: {
         'gradient-x': 'gradient-x 15s ease infinite',

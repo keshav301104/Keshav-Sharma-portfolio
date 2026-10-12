@@ -1,36 +1,47 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+/*
+ * Three fonts, each with one job:
+ *  - Instrument Serif → the story lines and titles (elegant, like a documentary title card)
+ *  - Geist            → normal reading text
+ *  - Geist Mono       → instrument readouts: the cosmic clock, labels, timestamps
+ *
+ * `variable` turns each font into a CSS variable (e.g. --font-display),
+ * which tailwind.config.ts maps to the classes font-display / font-sans / font-mono.
+ */
+const display = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+})
+const sans = Geist({ subsets: ['latin'], variable: '--font-sans' })
+const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
-// === UPDATE THIS BLOCK ===
+const description =
+  'AI engineer building multi-agent systems, RAG pipelines and the backends that carry them. Founding Engineer at Importex.'
+
 export const metadata: Metadata = {
-  // 1. Set the Base URL so WhatsApp finds the image
+  // The base URL lets WhatsApp, LinkedIn etc. find the preview image.
   metadataBase: new URL('https://keshav-sharma-portfolio-kappa.vercel.app'),
-
-  title: 'Keshav Sharma | AI, Data & Software Engineer',
-  description: 'NASA Space Apps Winner building production-ready AI agents, scalable SemRAG pipelines, and robust backend systems.',
-
+  title: 'Keshav Sharma | AI Engineer',
+  description,
   openGraph: {
-    title: 'Keshav Sharma | AI, Data & Software Engineer',
-    description: 'NASA Space Apps Winner. Explore my portfolio of production-grade AI and Engineering projects.',
+    title: 'Keshav Sharma | AI Engineer',
+    description,
     url: 'https://keshav-sharma-portfolio-kappa.vercel.app',
-    siteName: 'Keshav Sharma Portfolio',
+    siteName: 'Keshav Sharma',
     locale: 'en_US',
     type: 'website',
   },
 }
-// =========================
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+      <body className="bg-black font-sans text-white antialiased">{children}</body>
     </html>
   )
 }
