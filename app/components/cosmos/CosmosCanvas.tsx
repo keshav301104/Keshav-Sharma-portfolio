@@ -10,7 +10,7 @@ import World from './World'
 import Moons from './Moons'
 import BlackHole from './BlackHole'
 import Wormhole from './Wormhole'
-import Resolution from './Resolution'
+import Warmup from './Warmup'
 import Galaxy from './Galaxy'
 import Effects from './Effects'
 
@@ -29,11 +29,13 @@ export default function CosmosCanvas() {
     <div className="fixed inset-0 z-0" aria-hidden="true">
       <Canvas
         camera={{ position: [0, 0, 14], fov: 50, near: 0.1, far: 250 }}
-        dpr={[1, 1.75]} // sharp on retina screens, capped so phones don't overheat
+        // Sharp on retina screens, capped so the ray-traced chapters stay smooth. The setting never
+        // changes while you scroll (changing it mid-scroll rebuilds the whole picture, which stutters).
+        dpr={[1, 1.5]}
+        onCreated={({ size, setDpr }) => size.width < 768 && setDpr(1.25)} // phones: a little lighter
         gl={{ antialias: false, alpha: false, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={['#000004']} />
-        <Resolution />
         <Director />
         <MilkyWay />
         <Starfield />
@@ -46,6 +48,7 @@ export default function CosmosCanvas() {
         <Wormhole />
         <PrimordialPlasma />
         <Effects />
+        <Warmup />
       </Canvas>
     </div>
   )
