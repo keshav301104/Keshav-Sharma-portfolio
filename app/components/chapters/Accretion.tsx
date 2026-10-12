@@ -89,7 +89,7 @@ export default function Accretion() {
           className="mt-6 font-display text-xl italic text-white/60 max-md:[@media(max-height:700px)]:hidden md:mt-9 md:text-3xl"
           style={rise(fade(a, 0.72, 0.82))}
         >
-          Closer to a CTO than an engineer: zero to one, end to end.
+          More like a CTO than an engineer: zero to one, end to end.
         </p>
       </div>
     </div>
