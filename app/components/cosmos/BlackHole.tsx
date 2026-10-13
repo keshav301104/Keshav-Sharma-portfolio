@@ -1,11 +1,12 @@
 'use client'
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getChapterProgress } from '../../lib/store'
 import { BLACKHOLE_SHADER_PARTS } from './blackHoleShader'
 import { PER_GROUP, blackHoleOpacity, clumpRadius, fallProgress, gathered, groupAt, swallowedCount } from '../../lib/horizon'
 import { BH_CENTRE, BH_SCALE } from '../../lib/voyage'
+import { milkyWayMap } from '../../lib/bake'
 
 /* ------------------------------------------------------------------ *
  * Chapter V: you are the black hole. Your skills fall in.
@@ -35,8 +36,20 @@ import { BH_CENTRE, BH_SCALE } from '../../lib/voyage'
  *   and sends a wave of light out through the disc; the black hole grows a
  *   little with each one (see lib/voyage.ts: the camera moves in to match).
  *
+ * Ray tracing is the heaviest thing on the page, so it happens in two steps:
+ *   1. trace at HALF resolution, off screen (4× less work): the glowing gas,
+ *      plus how far each ray of light was bent on its way past the hole
+ *   2. at full resolution, stretch the gas over the screen (its soft glow
+ *      hides the difference) and draw the sky behind it pin-sharp, each star
+ *      moved by exactly the bend measured in step 1
+ * That's what keeps the chapter smooth without blurring a single star.
+ *
  * The shader itself is in blackHoleShader.ts.
  * ------------------------------------------------------------------ */
+
+const RAY_LAYER = 1 // the ray tracer lives on its own layer, so the normal render skips it
+const RAY_LAYER_MASK = new THREE.Layers()
+RAY_LAYER_MASK.set(RAY_LAYER)
 
 type Clump = { phi: number; t: number }
 const smoothstep = THREE.MathUtils.smoothstep
@@ -53,6 +66,9 @@ function redshift(t: number) {
 export default function BlackHole() {
   const mesh = useRef<THREE.Mesh>(null)
   const material = useRef<THREE.ShaderMaterial>(null)
+  const composite = useRef<THREE.Mesh>(null)
+  const compositeMaterial = useRef<THREE.ShaderMaterial>(null)
+  const picture = useRef<THREE.WebGLRenderTarget | null>(null)
   const labels = useRef<(HTMLElement | null)[]>([])
   const marker = useRef<HTMLElement | null>(null)
   const core = useRef<HTMLElement | null>(null)
@@ -61,6 +77,7 @@ export default function BlackHole() {
   const stage = useRef({ group: -2 })
   const flash = useRef({ value: 0, count: 0 })
   const isPhone = useMemo(() => window.innerWidth < 768, [])
+  const gl = useThree((s) => s.gl)
 
   const uniforms = useMemo(
     () => ({
@@ -71,24 +88,45 @@ export default function BlackHole() {
       uCamMatrix: { value: new THREE.Matrix4() },
       uOrigin: { value: new THREE.Vector3(...BH_CENTRE) },
       uScale: { value: BH_SCALE },
-      uPix: { value: 0.001 },
       uSteps: { value: isPhone ? 110 : 200 },
       uFlash: { value: 0 },
       uWave: { value: new THREE.Vector2(0, 0) },
-      uClumps: { value: Array.from({ length: PER_GROUP }, () => new THREE.Vector4()) },
+      uClumps: {
+        value: Array.from({ length: PER_GROUP }, () => new THREE.Vector4()),
+      },
     }),
     [isPhone]
   )
   const scratch = useMemo(
-    () => ({ v: new THREE.Vector3(), centre: new THREE.Vector3(...BH_CENTRE) }),
+    () => ({
+      v: new THREE.Vector3(),
+      centre: new THREE.Vector3(...BH_CENTRE),
+      clear: new THREE.Color(),
+    }),
     []
   )
+  const compositeUniforms = useMemo(
+    () => ({
+      uGas: { value: null },
+      uBend: { value: null },
+      uScreen: { value: new THREE.Vector2(1, 1) },
+      uInvProj: { value: new THREE.Matrix4() },
+      uCamMatrix: { value: new THREE.Matrix4() },
+      uPix: { value: 0.001 },
+      uSkyMap: { value: milkyWayMap(gl) }, // the sky behind, painted once (lib/bake.ts)
+    }),
+    [gl]
+  )
+
+  // The off-screen picture is freed when the page closes.
+  useEffect(() => () => picture.current?.dispose(), [])
 
   useFrame((state, delta) => {
-    if (!mesh.current || !material.current) return
+    if (!mesh.current || !material.current || !composite.current || !compositeMaterial.current) return
     const h = getChapterProgress('horizon')
     const opacity = blackHoleOpacity(h, getChapterProgress('projects'))
     mesh.current.visible = opacity > 0.002
+    composite.current.visible = mesh.current.visible
     if (!marker.current) marker.current = document.getElementById('bh-marker')
     if (!core.current) core.current = document.getElementById('bh-core')
     for (let i = 0; i < PER_GROUP; i++) labels.current[i] ??= document.getElementById(`bh-label-${i}`)
@@ -104,10 +142,8 @@ export default function BlackHole() {
     camera.updateMatrixWorld()
     u.uTime.value = state.clock.elapsedTime
     u.uOpacity.value = opacity
-    u.uRes.value.set(width * dpr, height * dpr)
     u.uInvProj.value.copy(camera.projectionMatrixInverse)
     u.uCamMatrix.value.copy(camera.matrixWorld)
-    u.uPix.value = THREE.MathUtils.degToRad(camera.fov) / (height * dpr)
 
     // ---- The skills: this group's six clumps, strung out along the orbit ----
     const { group } = groupAt(h)
@@ -184,20 +220,72 @@ export default function BlackHole() {
       core.current.style.transform = `translate(${cx.toFixed(1)}px, ${cy.toFixed(1)}px)`
       core.current.style.setProperty('--shadow', `${(shadow * 2).toFixed(1)}px`)
     }
+
+    // ---- Trace the black hole at half resolution, off screen ----
+    const renderer = state.gl
+    const scale = width < 768 ? 0.6 : 0.5
+    const w = Math.max(1, Math.round(width * dpr * scale))
+    const hgt = Math.max(1, Math.round(height * dpr * scale))
+    if (!picture.current)
+      picture.current = new THREE.WebGLRenderTarget(w, hgt, {
+        count: 2, // two pictures at once: the gas, and the bend
+        type: THREE.HalfFloatType,
+        depthBuffer: false,
+      })
+    else if (picture.current.width !== w || picture.current.height !== hgt) picture.current.setSize(w, hgt)
+    u.uRes.value.set(w, hgt)
+
+    const previousTarget = renderer.getRenderTarget()
+    const previousAlpha = renderer.getClearAlpha()
+    renderer.getClearColor(scratch.clear)
+    const background = state.scene.background
+    const layers = camera.layers.mask
+    state.scene.background = null // the picture starts see-through; only the black hole is drawn in it
+    camera.layers.set(RAY_LAYER)
+    renderer.setRenderTarget(picture.current)
+    renderer.setClearColor(0x000000, 0)
+    renderer.clear()
+    renderer.render(state.scene, camera)
+    renderer.setRenderTarget(previousTarget)
+    renderer.setClearColor(scratch.clear, previousAlpha)
+    camera.layers.mask = layers
+    state.scene.background = background
+
+    // ...then stretch it over the screen, with the sharp sky behind.
+    const cu = compositeMaterial.current.uniforms
+    cu.uGas.value = picture.current.textures[0]
+    cu.uBend.value = picture.current.textures[1]
+    cu.uScreen.value.set(width * dpr, height * dpr)
+    cu.uInvProj.value.copy(camera.projectionMatrixInverse)
+    cu.uCamMatrix.value.copy(camera.matrixWorld)
+    cu.uPix.value = THREE.MathUtils.degToRad(camera.fov) / (height * dpr)
   })
 
   return (
-    <mesh ref={mesh} visible={false} frustumCulled={false} renderOrder={50}>
-      <planeGeometry args={[2, 2]} />
-      <shaderMaterial
-        ref={material}
-        vertexShader={BLACKHOLE_SHADER_PARTS.vertex}
-        fragmentShader={BLACKHOLE_SHADER_PARTS.fragment}
-        uniforms={uniforms}
-        transparent
-        depthTest={false}
-        depthWrite={false}
-      />
-    </mesh>
+    <>
+      <mesh ref={mesh} visible={false} frustumCulled={false} layers={RAY_LAYER_MASK}>
+        <planeGeometry args={[2, 2]} />
+        <shaderMaterial
+          ref={material}
+          vertexShader={BLACKHOLE_SHADER_PARTS.vertex}
+          fragmentShader={BLACKHOLE_SHADER_PARTS.fragment}
+          uniforms={uniforms}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh ref={composite} visible={false} frustumCulled={false} renderOrder={50}>
+        <planeGeometry args={[2, 2]} />
+        <shaderMaterial
+          ref={compositeMaterial}
+          vertexShader={BLACKHOLE_SHADER_PARTS.vertex}
+          fragmentShader={BLACKHOLE_SHADER_PARTS.composite}
+          uniforms={compositeUniforms}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+    </>
   )
 }

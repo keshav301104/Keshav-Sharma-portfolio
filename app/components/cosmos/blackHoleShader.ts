@@ -1,4 +1,4 @@
-import { BLACKBODY, NOISE, SKY } from '../../lib/glsl'
+import { BLACKBODY, NOISE, SKY, SKY_FAST } from '../../lib/glsl'
 import { PER_GROUP } from '../../lib/horizon'
 
 /* ------------------------------------------------------------------ *
@@ -32,15 +32,14 @@ const fragment = /* glsl */ `
   uniform mat4 uCamMatrix; // the real camera's position and orientation in the scene
   uniform vec3 uOrigin;    // where the black hole is in the scene
   uniform float uScale;    // scene units per horizon radius
-  uniform float uPix;
   uniform int uSteps;
   uniform float uFlash;
   uniform vec2 uWave;                  // flare wave: radius, strength
   uniform vec4 uClumps[${PER_GROUP}];  // orbit radius, angle, brightness, fall progress (0 → 1)
+  layout(location = 1) out highp vec4 pc_fragBend; // the second output (see the end of main)
 
   ${NOISE}
   ${BLACKBODY}
-  ${SKY}
 
   const float R_IN = 3.0;
   const float R_OUT = 14.0;
@@ -170,6 +169,20 @@ const fragment = /* glsl */ `
       if (alpha > 0.985) break;
     }
 
+    // A ray that got away stops being traced once it's far out, but gravity would keep
+    // bending it a little more on its way to infinity. Add that last bit with the exact
+    // far-field formula, so neighbouring rays (one traced a step longer than the other)
+    // bend by the same amount and the stars behind line up without a seam.
+    if (!swallowed && dot(pos, vel) > 0.0) {
+      vec3 v = normalize(vel);
+      float b = sqrt(h2);
+      float s0 = dot(pos, v);
+      float r0 = length(pos);
+      vec3 across = pos - s0 * v;
+      float rest = 1.0 / b - s0 * (2.0 * s0 * s0 + 3.0 * b * b) / (2.0 * b * r0 * r0 * r0);
+      vel = v - max(rest, 0.0) * across / max(length(across), 1e-4);
+    }
+
     // The photon ring flares as each skill is swallowed.
     colour += vec3(1.0, 0.78, 0.55) * uFlash * 2.4 * exp(-pow((closest - 1.55) / 0.14, 2.0)) * (1.0 - alpha);
 
@@ -179,16 +192,45 @@ const fragment = /* glsl */ `
     float luma = dot(colour, vec3(0.299, 0.587, 0.114));
     colour = max(mix(vec3(luma), colour, 1.35), 0.0);
 
-    // Whatever escaped shows the (lensed) Milky Way behind the black hole, exactly as
-    // bright as the scene's own sky, so the two blend without a seam.
-    vec3 sky = swallowed ? vec3(0.0) : milkyWay(normalize(vel), uPix);
-    colour += (1.0 - alpha) * sky;
-
     // Near the hole this picture replaces the scene; further out, where the bending
     // fades away, it melts into the scene's own sky.
     float cover = max(alpha, 1.0 - smoothstep(16.0, 32.0, swallowed ? 0.0 : closest));
-    gl_FragColor = vec4(colour, cover * uOpacity);
+
+    // Two outputs (this is traced at half resolution, see BlackHole.tsx):
+    //   1. the glowing gas, and how much of the sky behind it is hidden (all of it, if swallowed)
+    //   2. how far the black hole bent this ray of light, so the sky behind can be drawn
+    //      afterwards at FULL sharpness, with every star exactly where the bending puts it
+    vec3 bend = swallowed ? vec3(0.0) : normalize(vel) - dir;
+    gl_FragColor = vec4(colour, swallowed ? 1.0 : alpha);
+    pc_fragBend = vec4(bend, cover * uOpacity);
   }
 `
 
-export const BLACKHOLE_SHADER_PARTS = { vertex, fragment }
+/**
+ * Step 2, at full resolution: stretch the half-resolution gas over the screen, and draw the
+ * sky behind it sharply, bending each pixel's ray by the amount step 1 measured.
+ */
+const composite = /* glsl */ `
+  uniform sampler2D uGas;
+  uniform sampler2D uBend;
+  uniform vec2 uScreen;
+  uniform mat4 uInvProj;
+  uniform mat4 uCamMatrix;
+  uniform float uPix;
+  ${NOISE}
+  ${BLACKBODY}
+  ${SKY}
+  ${SKY_FAST}
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uScreen;
+    vec4 bend = texture(uBend, uv);
+    if (bend.w <= 0.002) discard; // far from the hole: the scene's own sky shows through
+    vec4 gas = texture(uGas, uv);
+    vec4 view = uInvProj * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
+    vec3 dir = normalize(mat3(uCamMatrix) * normalize(view.xyz / view.w));
+    vec3 sky = milkyWay(normalize(dir + bend.xyz), uPix);
+    gl_FragColor = vec4(gas.rgb + (1.0 - gas.a) * sky, bend.w);
+  }
+`
+
+export const BLACKHOLE_SHADER_PARTS = { vertex, fragment, composite }
