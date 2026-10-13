@@ -99,7 +99,7 @@ function Plate({ project, index }: { project: Project; index: number }) {
             alt={project.image.caption}
             fill
             sizes="(max-width: 768px) 84vw, 500px"
-            loading="eager"
+            loading="eager" // fetched with the page, so nothing pops in while the plates slide past
             className="object-cover object-top transition-transform duration-700 hover:scale-[1.04]"
           />
         ) : (
