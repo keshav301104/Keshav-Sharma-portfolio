@@ -1,4 +1,4 @@
-import { BLACKBODY, FAR_SKY, NOISE, SKY } from '../../lib/glsl'
+import { BLACKBODY, FAR_SKY, FAR_SKY_FAST, NOISE, SKY, SKY_FAST } from '../../lib/glsl'
 
 /* ------------------------------------------------------------------ *
  * The wormhole's ray tracer (used by Wormhole.tsx).
@@ -43,7 +43,9 @@ const fragment = /* glsl */ `
   ${NOISE}
   ${BLACKBODY}
   ${SKY}
+  ${SKY_FAST}
   ${FAR_SKY}
+  ${FAR_SKY_FAST}
 
   const float PI = 3.14159265;
 

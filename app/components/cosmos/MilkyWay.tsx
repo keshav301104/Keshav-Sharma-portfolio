@@ -1,9 +1,10 @@
 'use client'
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getChapterProgress } from '../../lib/store'
-import { BLACKBODY, NOISE, SKY } from '../../lib/glsl'
+import { BLACKBODY, NOISE, SKY, SKY_FAST } from '../../lib/glsl'
+import { milkyWayMap } from '../../lib/bake'
 
 /* ------------------------------------------------------------------ *
  * The night sky for every chapter after the introduction.
@@ -35,6 +36,7 @@ const fragmentShader = /* glsl */ `
   ${NOISE}
   ${BLACKBODY}
   ${SKY}
+  ${SKY_FAST}
   void main() {
     vec3 d = normalize(vWorld - cameraPosition);
     gl_FragColor = vec4(milkyWay(d, uPix) * uOpacity, 1.0);
@@ -44,15 +46,19 @@ const fragmentShader = /* glsl */ `
 export default function MilkyWay() {
   const mesh = useRef<THREE.Mesh>(null)
   const material = useRef<THREE.ShaderMaterial>(null)
-  const uniforms = useMemo(() => ({ uOpacity: { value: 0 }, uPix: { value: 0.001 } }), [])
+  const gl = useThree((s) => s.gl)
+  // The band's glow is painted once into a cube map (lib/bake.ts); only the stars are drawn live.
+  const uniforms = useMemo(() => ({ uOpacity: { value: 0 }, uPix: { value: 0.001 }, uSkyMap: { value: milkyWayMap(gl) } }), [gl])
 
   useFrame((state, delta) => {
     if (!mesh.current || !material.current) return
     // Fades in as Chapter III begins and stays for the rest of the page.
+    // Hidden once we're through the wormhole: the far side covers the whole screen, so drawing it would be wasted work.
+    const beyond = getChapterProgress('transmission') > 0 || getChapterProgress('wormhole') > 0.96
     const target = THREE.MathUtils.smoothstep(getChapterProgress('accretion'), 0, 0.12)
     const u = material.current.uniforms
     u.uOpacity.value = THREE.MathUtils.damp(u.uOpacity.value, target, 3, delta)
-    mesh.current.visible = u.uOpacity.value > 0.003
+    mesh.current.visible = u.uOpacity.value > 0.003 && !beyond
 
     const camera = state.camera as THREE.PerspectiveCamera
     mesh.current.position.copy(camera.position)

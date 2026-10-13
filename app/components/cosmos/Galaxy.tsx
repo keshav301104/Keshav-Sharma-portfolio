@@ -1,10 +1,11 @@
 'use client'
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getChapterProgress } from '../../lib/store'
 import { GALAXY_CENTRE, GALAXY_RADIUS } from '../../lib/voyage'
 import { NOISE } from '../../lib/glsl'
+import { bakePlane } from '../../lib/bake'
 
 /* ------------------------------------------------------------------ *
  * Chapter VI: a spiral galaxy, painted like a Hubble photograph.
@@ -37,7 +38,9 @@ const vertexShader = /* glsl */ `
   }
 `
 
-const fragmentShader = /* glsl */ `
+// The galaxy's face, worked out pixel by pixel. This is slow, so it's painted ONCE at load
+// into a flat picture (lib/bake.ts); the galaxy you see is that picture, turning slowly.
+const faceShader = /* glsl */ `
   uniform float uOpacity;
   uniform float uSpin;
   varying vec2 vPos;
@@ -111,6 +114,22 @@ const fragmentShader = /* glsl */ `
   }
 `
 
+// What's drawn every frame: look up the painted face, turned by the galaxy's rotation.
+const fragmentShader = /* glsl */ `
+  uniform sampler2D uFace;
+  uniform float uHalf;
+  uniform float uOpacity;
+  uniform float uSpin;
+  varying vec2 vPos;
+  void main() {
+    float c = cos(uSpin), s = sin(uSpin);
+    vec2 p = vec2(c * vPos.x - s * vPos.y, s * vPos.x + c * vPos.y);
+    gl_FragColor = texture(uFace, p / (2.0 * uHalf) + 0.5) * uOpacity;
+  }
+`
+
+const HALF = GALAXY_RADIUS * 1.05 // half the width of the square the galaxy is painted on
+
 function makeGlowTexture() {
   const c = document.createElement('canvas')
   c.width = c.height = 128
@@ -131,7 +150,14 @@ export default function Galaxy() {
   const opacity = useRef(0)
 
   const glow = useMemo(() => makeGlowTexture(), [])
-  const uniforms = useMemo(() => ({ uOpacity: { value: 0 }, uSpin: { value: 0 } }), [])
+  const gl = useThree((s) => s.gl)
+  const uniforms = useMemo(() => {
+    const face = bakePlane(gl, 'galaxy', faceShader, HALF, window.innerWidth < 768 ? 768 : 1024, {
+      uOpacity: { value: 1 },
+      uSpin: { value: 0 },
+    })
+    return { uFace: { value: face }, uHalf: { value: HALF }, uOpacity: { value: 0 }, uSpin: { value: 0 } }
+  }, [gl])
 
   useFrame((state, delta) => {
     if (!root.current || !material.current || !core.current) return

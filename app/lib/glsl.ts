@@ -11,6 +11,11 @@
  *               lanes, a warm core, and thousands of pin-sharp stars
  *   FAR_SKY     the sky on the far side of the wormhole: a vast star-forming
  *               nebula with a young cluster at its heart
+ *
+ * The skies are split into a slow part (the glowing gas and dust, painted once
+ * into a "cube map" at load by lib/bake.ts) and a fast part (the pin-sharp stars,
+ * drawn live). Looking up a painted picture costs almost nothing, so the sky no
+ * longer slows down every frame. SKY_FAST and FAR_SKY_FAST put the two together.
  * ------------------------------------------------------------------ */
 
 export const NOISE = /* glsl */ `
@@ -69,15 +74,21 @@ export const SKY = /* glsl */ `
     return tint * core * brightness;
   }
 
-  // Our galaxy from the inside. d = a viewing direction (unit length).
-  vec3 milkyWay(vec3 d, float pix) {
-    // The galaxy's own axes: its plane crosses every chapter's view diagonally,
-    // and its bright core sits off to one side.
-    vec3 g = vec3(
+  // The galaxy's own axes: its plane crosses every chapter's view diagonally,
+  // and its bright core sits off to one side.
+  vec3 galactic(vec3 d) {
+    return vec3(
       dot(d, vec3(-0.4696, 0.2869, -0.835)),
       dot(d, vec3(0.8018, 0.5345, -0.2673)),
       dot(d, vec3(0.3696, -0.795, -0.4811))
     );
+  }
+
+  // Our galaxy from the inside, part 1: the soft glow of the band and its dark dust.
+  // Returns the glow (rgb) and how dusty that direction is (a). This is the expensive
+  // part, so it's painted once into a cube map (lib/bake.ts) and looked up after that.
+  vec4 milkyWayGlow(vec3 d) {
+    vec3 g = galactic(d);
     float lat = asin(clamp(g.y, -1.0, 1.0));
     float toCore = acos(clamp(g.z, -1.0, 1.0)); // angle from the galactic centre
 
@@ -99,14 +110,31 @@ export const SKY = /* glsl */ `
     vec3 coreColour = vec3(1.0, 0.8, 0.58);
     vec3 glow = armColour * band * 0.065 + coreColour * bulge * 0.2;
     glow *= mix(vec3(1.0), vec3(0.45, 0.32, 0.24), dust); // dust: darker and browner
+    return vec4(glow, dust);
+  }
 
-    // Stars: a fine dust of faint ones, fewer medium ones, and a rare few bright ones,
-    // crowded inside the band and sparse away from it (as in a real dark-sky photo).
+  // Part 2: the stars, drawn live every frame so they stay pin-sharp (they're cheap).
+  // A fine dust of faint ones, fewer medium ones, and a rare few bright ones,
+  // crowded inside the band and sparse away from it (as in a real dark-sky photo).
+  vec3 milkyWayStars(vec3 d, float pix, float dust) {
+    float lat = asin(clamp(galactic(d).y, -1.0, 1.0));
     float crowd = 0.3 + 0.7 * exp(-pow(lat / 0.3, 2.0));
     vec3 stars = starLayer(d, 300.0, 0.16 * crowd, pix, 0.22)
                + starLayer(d, 120.0, 0.07 * crowd, pix, 0.5)
                + starLayer(d, 42.0, 0.05, pix * 1.15, 1.3);
-    return glow + stars * (1.0 - 0.6 * dust);
+    return stars * (1.0 - 0.6 * dust);
+  }
+`
+
+/**
+ * The Milky Way, fast: the glow comes from the cube map painted once at load (uSkyMap,
+ * see lib/bake.ts); the stars are drawn live. Needs NOISE, BLACKBODY and SKY above it.
+ */
+export const SKY_FAST = /* glsl */ `
+  uniform samplerCube uSkyMap;
+  vec3 milkyWay(vec3 d, float pix) {
+    vec4 glow = texture(uSkyMap, d);
+    return glow.rgb + milkyWayStars(d, pix, glow.a);
   }
 `
 
@@ -115,9 +143,11 @@ export const FAR_SKY = /* glsl */ `
   // Somewhere else entirely: a giant star-forming nebula, like the Carina or Eagle
   // nebulae. Colours are the real emission lines: hydrogen glows deep red-pink,
   // oxygen glows teal, and cold dust carves dark pillars and lanes through it.
-  vec3 farSky(vec3 d, float pix) {
-    vec3 centre = normalize(vec3(0.28, 0.1, 1.0));
-    float ang = acos(clamp(dot(d, centre), -1.0, 1.0));
+  const vec3 NEBULA_CENTRE = vec3(0.2684, 0.0959, 0.9585); // normalize(0.28, 0.1, 1.0)
+
+  // Part 1 (painted once into a cube map): the glowing gas (rgb) and its dust (a).
+  vec4 farGlow(vec3 d) {
+    float ang = acos(clamp(dot(d, NEBULA_CENTRE), -1.0, 1.0));
     float region = exp(-pow(ang / 0.75, 2.0));
 
     vec3 p = d * 2.4;
@@ -136,13 +166,25 @@ export const FAR_SKY = /* glsl */ `
     float dustField = fbm3(p * 4.0 + w * 2.6 + 11.0);
     float dust = smoothstep(0.53, 0.68, dustField) * smoothstep(0.05, 0.5, region);
     glow *= 1.0 - 0.9 * dust;
+    return vec4(glow, dust);
+  }
 
-    // Stars (a different patch of sky, so the pattern is new), and a young blue cluster at the heart.
+  // Part 2 (live): stars from a different patch of sky, and a young blue cluster at the heart.
+  vec3 farStars(vec3 d, float pix, float dust) {
+    float ang = acos(clamp(dot(d, NEBULA_CENTRE), -1.0, 1.0));
     vec3 e = vec3(d.z, d.x, d.y);
     vec3 stars = starLayer(e, 290.0, 0.13, pix, 0.3) + starLayer(e, 118.0, 0.07, pix, 0.6) + starLayer(e, 44.0, 0.05, pix * 1.15, 1.4);
     float cluster = exp(-pow(ang / 0.1, 2.0));
     stars += starLayer(e, 170.0, 0.65 * cluster, pix * 1.2, 2.2) * vec3(0.8, 0.9, 1.2);
-    stars *= 1.0 - 0.85 * dust;
-    return glow + stars;
+    return stars * (1.0 - 0.85 * dust);
+  }
+`
+
+/** The far sky, fast: glow from its painted cube map (uFarMap), stars live. Needs FAR_SKY above it. */
+export const FAR_SKY_FAST = /* glsl */ `
+  uniform samplerCube uFarMap;
+  vec3 farSky(vec3 d, float pix) {
+    vec4 glow = texture(uFarMap, d);
+    return glow.rgb + farStars(d, pix, glow.a);
   }
 `

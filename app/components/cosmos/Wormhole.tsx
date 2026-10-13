@@ -1,11 +1,12 @@
 'use client'
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { getChapterProgress } from '../../lib/store'
 import { WORMHOLE_SHADER_PARTS } from './wormholeShader'
 import { THROAT, WORMHOLE_AXIS, WORMHOLE_MOUTH, tunnelPoint } from '../../lib/voyage'
 import { tunnelPosition, turnAround, wormholeOffset, wormholeOpacity } from '../../lib/wormhole'
+import { farSkyMap, milkyWayMap } from '../../lib/bake'
 
 /* ------------------------------------------------------------------ *
  * Chapters VII and VIII: a wormhole, and the universe beyond it.
@@ -50,6 +51,7 @@ export default function Wormhole() {
   const axis = useMemo(() => new THREE.Vector3(...WORMHOLE_AXIS), [])
   const sideways = useMemo(() => new THREE.Vector3().crossVectors(up, axis).normalize(), [axis]) // the way the camera turns
 
+  const gl = useThree((s) => s.gl)
   const uniforms = useMemo(() => {
     // The far universe's own axes: its nebula lies straight ahead as you come out of the far mouth.
     const z = new THREE.Vector3(...WORMHOLE_AXIS)
@@ -66,8 +68,11 @@ export default function Wormhole() {
       uPix: { value: 0.001 },
       uSpin: { value: 0 },
       uOpacity: { value: 0 },
+      // Both skies' soft glow, painted once (lib/bake.ts); their stars are drawn live.
+      uSkyMap: { value: milkyWayMap(gl) },
+      uFarMap: { value: farSkyMap(gl) },
     }
-  }, [])
+  }, [gl])
 
   useFrame((state, delta) => {
     if (!mesh.current || !material.current) return
