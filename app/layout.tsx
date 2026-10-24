@@ -25,13 +25,13 @@ const description =
 
 export const metadata: Metadata = {
   // The base URL lets WhatsApp, LinkedIn etc. find the preview image.
-  metadataBase: new URL('https://keshav-sharma-portfolio-kappa.vercel.app'),
+  metadataBase: new URL('https://keshavsharma.app'),
   title: 'Keshav Sharma | AI Engineer',
   description,
   openGraph: {
     title: 'Keshav Sharma | AI Engineer',
     description,
-    url: 'https://keshav-sharma-portfolio-kappa.vercel.app',
+    url: 'https://keshavsharma.app',
     siteName: 'Keshav Sharma',
     locale: 'en_US',
     type: 'website',
